@@ -8,7 +8,7 @@ def f = new File('/Users/benjaminh/Downloads/Takeout/Standortverlauf/Standortver
 
 def json = slurper.parseText(f.text)
 
-def reduced = json.locations[0..20000]
+def reduced = json.locations
 
 @Field
 def format = new SimpleDateFormat("yyyy.MM.dd")
@@ -25,8 +25,8 @@ def locs = reduced.collect { location ->
 
 @Field
 def einstein = [lat: 481406370, long: 115229800]
-//def einstein = [lat: 481404946, long: 115232348]
-//48.140637, 11.522980
+@Field
+Date firstDate = new Date(118, 06, 23)
 
 
 def atEinstein(def loc) {
@@ -39,15 +39,23 @@ def atEinstein(def loc) {
     def hoursOfDay = loc.time.hours
     def inTime = from < hoursOfDay && hoursOfDay < till
 
-    def firstDate = new Date(2018, 07, 23)
-    def inDate = loc.time.time > firstDate.time
+    def inDate = ((Date) loc.time).after firstDate
 
-    return inLat && inLong && inTime //&& inDate
+    return inLat && inLong && inTime && inDate
 }
 
 def visits = locs.findAll { atEinstein(it) }.unique { it.date }.sort { it.date }
-println visits.size()
-println visits.join('\n')
-println visits.collect { [it.date, it.dayOfWeek] }.join('\n')
+
+def priceYear = 550
+def numVisits = visits.size()
+def priceEntry = (550 / numVisits).round(2)
+def regularEntry = 11.90
+def savedEntry = (regularEntry - priceEntry).round(2)
+def totalSave = regularEntry * numVisits - priceYear
 
 
+println """You have been to Einstein on ${numVisits} days since ${format.format(firstDate)}
+You have paid ${priceYear}€ for one year.
+You have paid ${priceEntry}€ for each entry and saved ${savedEntry}€ on each visit.
+Saved in total compared to paying each entry individually: ${totalSave}€.
+Those are the dates: \n${visits.collect { [it.date, it.dayOfWeek] }.join(' ')}"""
